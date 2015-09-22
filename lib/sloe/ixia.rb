@@ -2,7 +2,7 @@ module Sloe
   class Ixia
 
     # Create Sloe::Ixia object. This assumes you have the Ixia Linux TCL library installed
-    # 
+    #
     # @param host [String] IP or DNS name of the Linux TCL server
     # @param port [FixNum] port number to connect Ixia IxN controller on
     # @param version [String] version of the IxHal
@@ -59,6 +59,15 @@ module Sloe
       File.delete clear_tcl
     end
 
+    # Stop Ixia traffic flows only
+    def traffic_stop
+      stop_tcl = File.open("/var/tmp/stop-#{@buildtime}", 'w')
+      stop_tcl.write stop_traffic_only
+      stop_tcl.close
+      system "#{@ixia_exe} /var/tmp/stop-#{@buildtime}"
+      File.delete stop_tcl
+    end
+
     # Stop Ixia traffic flows and gather Ixia stats
     def run_stats_gather
       stats_tcl = File.open("/var/tmp/stats-#{@buildtime}", 'w')
@@ -92,12 +101,12 @@ module Sloe
     end
 
     private
-    
+
     def setup
-      tcl = connect 
-      tcl << load_config 
-      tcl << start_protocols 
-      tcl << start_traffic 
+      tcl = connect
+      tcl << load_config
+      tcl << start_protocols
+      tcl << start_traffic
       tcl << disconnect
       tcl
     end
@@ -105,6 +114,13 @@ module Sloe
     def clear_traffic_stats
       tcl = connect
       tcl << clear_ixia_traffic_stats
+      tcl << disconnect
+      tcl
+    end
+
+    def stop_traffic_only
+      tcl = connect
+      tcl << stop_traffic
       tcl << disconnect
       tcl
     end
@@ -174,7 +190,7 @@ module Sloe
       TCL
       code
     end
-    
+
     def stop_traffic
       code = <<-TCL.gsub(/^\s+\|/,'')
         |set root [ixNet getRoot]
